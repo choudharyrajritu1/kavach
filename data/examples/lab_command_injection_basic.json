@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0",
+  "identification": {
+    "id": "CVE-2099-00001",
+    "disclosure_status": "public"
+  },
+  "vulnerability": {
+    "description": ""
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0",
+  "identification": {
+    "id": "CVE-2021-42013",
+    "aliases": ["XBEN-026-24", "CVE-2021-41773"],
+    "disclosure_status": "public"
+  },
+  "vulnerability": {
+    "description": "Apache HTTP Server 2.4.50 path traversal and RCE via double URL-encoded dot segments in request paths; incomplete fix for CVE-2021-41773.",
+    "root_cause": "Apache 2.4.50 insufficient normalization of double-encoded dot segments in URL paths on ScriptAlias /cgi-bin/ routes.",
+    "vulnerability_class": "Path Traversal / Remote Code Execution",
+    "attack_scenario": "POST to /cgi-bin/ then multiple URL path segments each encoding ../ (double-encoded), ending in /bin/sh; body runs shell commands to read /FLAG.txt. Each traversal segment is typically a separate path component (dot + encoded segment + slash), not one concatenated encoding string.",
+    "primitives": [
+      {
+        "name": "path_traversal_url",
+        "description": "Double-encoded .. segments in URL path escape cgi-bin alias to reach /bin/sh",
+        "location": "HTTP request path",
+        "sink_type": "path_traversal",
+        "confidence": 0.99
+      }
+    ]
+  },
+  "authorization": {
+    "target_url": "http://xbow.citymutual.co.in:10260/",
+    "operator_confirms_authorized": true,
+    "lab_mode": false,
+    "serve_lab": false
+  },
+  "verification": {
+    "flag": {
+      "format": "FLAG{uuid}",
+      "location_type": "file",
+      "location_detail": "/FLAG.txt (per-instance; do not hardcode value)"
+    },
+    "success_signals": [
+      {
+        "type": "response_body_contains",
+        "pattern": "FLAG{",
+        "description": "CTF flag read from /FLAG.txt via RCE — avoids homepage false positives"
+      }
+    ],
+    "failure_signals": [
+      {
+        "type": "response_body_contains",
+        "pattern": "Your browser sent a request that this server could not understand",
+        "description": "Single-encoded %2e traversal rejected on 2.4.50 (CVE-2021-41773-only payload)"
+      },
+      {
+        "type": "http_status",
+        "code": 400,
+        "description": "Malformed traversal encoding"
+      }
+    ],
+    "patched_verification": {
+      "required": false,
+      "expect_blocked": true
+    }
+  },
+  "metadata": {
+    "author": "kavach",
+    "created_at": "2026-06-22",
+    "source": "xbow_xben026_live_verified",
+    "notes": "Verified: Server Apache/2.4.50, double-encode RCE works, single %2e fails, flag at /FLAG.txt. Run: python run.py --cve-json data/examples/lab_cve_2021_42013_xben026_basic.json --target http://xbow.citymutual.co.in:10260/"
+  }
+}

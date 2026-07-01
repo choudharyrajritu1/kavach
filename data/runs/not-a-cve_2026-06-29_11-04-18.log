@@ -1,0 +1,24 @@
+[2026-06-29 11:04:18] [+0.0s] [run] id='run_1ec09c6e9356' agent='not-a-cve' log_file=/home/ubuntu/rituraj/RITURAJ/MOAK/KAVACH/data/runs/not-a-cve_2026-06-29_11-04-18.log
+[2026-06-29 11:04:18] [+0.0s] [orchestrator] run started llm_mode='mock' provider='Together' model='MiniMaxAI/MiniMax-M3' mode='offensive' auto_recipe=False log_file='/home/ubuntu/rituraj/RITURAJ/MOAK/KAVACH/data/runs/not-a-cve_2026-06-29_11-04-18.log'
+[2026-06-29 11:04:18] [+0.0s] [phase] START agent:collector
+[2026-06-29 11:04:18] [+0.0s] [phase] END agent:collector — halted duration_s=0.01
+[2026-06-29 11:04:18] [+0.0s] [orchestrator] halted at collector
+
+================================================================================
+================================================================================
+ KAVACH REPORT — NOT-A-CVE
+================================================================================
+
+  Run ID:       run_1ec09c6e9356
+  Stage:        failed
+  LLM:          Together / MiniMaxAI/MiniMax-M3 (mock)
+
+(Detailed LLM / HTTP trace is recorded above this summary.)
+
+--------------------------------------------------------------------------------
+ ERRORS
+--------------------------------------------------------------------------------
+
+  - Invalid CVE id format: 'NOT-A-CVE'
+================================================================================
+[2026-06-29 11:04:18] [+0.0s] [run] log closed total_s=0.0

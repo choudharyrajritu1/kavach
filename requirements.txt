@@ -1,0 +1,24 @@
+# Core API service
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
+
+# Google search (optional — scripts/google_search.py)
+serpapi==1.0.2
+
+# --- Optional, for production deployments (uncomment as needed) ---
+# Relational + vector storage
+# psycopg[binary]==3.2.3
+# qdrant-client==1.12.1
+# Orchestration (swap the stdlib runner for a graph engine)
+# langgraph==0.2.53
+# langchain-core==0.3.21
+# Static analysis helpers for the Researcher agent
+# semgrep==1.97.0
+# bandit==1.8.0
+# Observability
+# prometheus-client==0.21.1
+# opentelemetry-sdk==1.29.0
+#
+# The core pipeline (run.py, agents, orchestrator) runs on the Python standard
+# library alone in mock mode. Only the API needs the packages above.
