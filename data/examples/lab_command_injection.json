@@ -1,0 +1,130 @@
+{
+  "schema_version": "1.0",
+  "identification": {
+    "id": "CVE-2099-00001",
+    "aliases": ["KAVACH-Training-Lab"],
+    "title": "Command injection in /api/ping host parameter",
+    "disclosure_status": "public",
+    "severity": "CRITICAL",
+    "cvss_score": 9.8,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+    "cwe_ids": ["CWE-78"]
+  },
+  "vulnerability": {
+    "description": "The demo HTTP service concatenates the 'host' query parameter into a shell command executed with shell=True, enabling unauthenticated OS command injection and full read of process environment secrets.",
+    "root_cause": "User-controlled 'host' query param is interpolated into cmd = f'echo pinging {host}' and passed to subprocess.run(..., shell=True) without sanitization.",
+    "vulnerability_class": "OS Command Injection",
+    "attack_scenario": "Attacker sends GET /api/ping?host=<payload> where payload breaks out of echo and runs arbitrary shell commands. The planted flag is in KAVACH_FLAG environment variable readable via printf or env.",
+    "primitives": [
+      {
+        "name": "shell_concat_sink",
+        "description": "host query param concatenated into shell command string",
+        "location": "kavach/lab/vulnerable_app.py:103",
+        "sink_type": "os_command",
+        "confidence": 0.99
+      },
+      {
+        "name": "env_flag_leak",
+        "description": "KAVACH_FLAG env var available to subprocess inherits attacker-controlled shell",
+        "location": "environment",
+        "sink_type": "secret_read",
+        "confidence": 0.95
+      }
+    ]
+  },
+  "affected_software": {
+    "products": ["KAVACH Demo Lab"],
+    "vulnerable_versions": ["all"],
+    "fixed_versions": ["patched twin"],
+    "repo_url": "",
+    "commit_vulnerable": "",
+    "commit_patched": ""
+  },
+  "attack_surface": {
+    "protocol": "http",
+    "base_urls": ["http://127.0.0.1:8080"],
+    "endpoints": [
+      {
+        "path": "/api/ping",
+        "methods": ["GET"],
+        "auth_required": false,
+        "auth_type": "none",
+        "parameters": [
+          {
+            "name": "host",
+            "location": "query",
+            "type": "string",
+            "required": true,
+            "controllable": true,
+            "description": "Concatenated into shell echo command — primary injection vector",
+            "example_benign": "8.8.8.8",
+            "encoding_notes": "Try shell metacharacters: ; && | $() — patched twin blocks non-alphanumeric except .-"
+          }
+        ],
+        "body_format": "none"
+      }
+    ]
+  },
+  "source_artifacts": {
+    "patch_diff": "- cmd = f'echo pinging {host}'  # shell=True\n+ if not all(c.isalnum() or c in '.-' for c in host): abort(400)",
+    "vulnerable_code_snippets": [
+      {
+        "file": "vulnerable_app.py",
+        "language": "python",
+        "content": "cmd = f'echo pinging {host}'\nout = subprocess.run(cmd, shell=True, capture_output=True, env={'KAVACH_FLAG': flag})",
+        "line_start": 103
+      }
+    ],
+    "patched_code_snippets": [
+      {
+        "file": "vulnerable_app.py",
+        "language": "python",
+        "content": "if not all(c.isalnum() or c in '.-' for c in host):\n    return self._send(400, 'invalid host')"
+      }
+    ]
+  },
+  "verification": {
+    "flag": {
+      "format": "KAVACH_FLAG{...}",
+      "value": "KAVACH_FLAG{json-lab-test}",
+      "location_type": "environment_variable",
+      "location_detail": "KAVACH_FLAG passed to subprocess environment",
+      "capture_marker": {
+        "prefix": "KAVACHCAP[",
+        "suffix": "]KAVACHEND"
+      }
+    },
+    "success_signals": [
+      {
+        "type": "response_body_contains",
+        "pattern": "KAVACHCAP[",
+        "description": "Captured flag wrapped in KAVACH capture marker in response body"
+      }
+    ],
+    "failure_signals": [
+      {
+        "type": "http_status",
+        "code": 400,
+        "description": "Patched twin rejects malicious host param"
+      }
+    ],
+    "patched_verification": {
+      "required": true,
+      "expect_blocked": true
+    }
+  },
+  "authorization": {
+    "target_url": "http://127.0.0.1:8080",
+    "operator_confirms_authorized": true,
+    "lab_mode": true,
+    "serve_lab": true,
+    "lab_fixture": "command_injection_ping"
+  },
+  "references": ["local://kavach/lab/vulnerable_app.py"],
+  "metadata": {
+    "author": "kavach",
+    "created_at": "2026-06-19",
+    "source": "bundled_lab_fixture",
+    "notes": "Use with: python run.py --cve-json data/examples/lab_command_injection.json"
+  }
+}

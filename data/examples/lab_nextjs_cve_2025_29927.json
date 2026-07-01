@@ -1,0 +1,128 @@
+{
+  "schema_version": "1.0",
+  "identification": {
+    "id": "CVE-2025-29927",
+    "aliases": ["Next.js middleware authorization bypass"],
+    "title": "Next.js middleware authorization bypass via x-middleware-subrequest",
+    "disclosure_status": "public",
+    "severity": "HIGH",
+    "cvss_score": 8.1,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N",
+    "cwe_ids": ["CWE-863"]
+  },
+  "vulnerability": {
+    "description": "Next.js 14.x mishandles the x-middleware-subrequest header, allowing attackers to skip middleware auth checks and access protected API routes without valid credentials.",
+    "root_cause": "Internal middleware subrequest handling trusts x-middleware-subrequest to denote nested middleware invocations; attacker-controlled values bypass the middleware chain.",
+    "vulnerability_class": "Authorization Bypass",
+    "attack_scenario": "Send GET /api/hello without Authorization but with x-middleware-subrequest set to a nested middleware chain (e.g. middleware repeated 5 times separated by colons) to skip auth and read the protected response body.",
+    "primitives": [
+      {
+        "name": "middleware_skip_header",
+        "description": "x-middleware-subrequest header skips middleware execution",
+        "location": "HTTP request header",
+        "sink_type": "auth_bypass",
+        "confidence": 0.95
+      },
+      {
+        "name": "protected_api_read",
+        "description": "Protected /api/hello returns JSON message when bypass succeeds",
+        "location": "app/api/hello/route.js",
+        "sink_type": "information_disclosure",
+        "confidence": 0.99
+      }
+    ]
+  },
+  "affected_software": {
+    "products": ["next"],
+    "vulnerable_versions": ["14.2.24"],
+    "fixed_versions": ["patched release"],
+    "repo_url": "local://kavach/lab/vulnerable-nextjs-14-CVE-2025-29927",
+    "commit_vulnerable": "",
+    "commit_patched": ""
+  },
+  "attack_surface": {
+    "protocol": "http",
+    "base_urls": ["http://127.0.0.1:3100"],
+    "endpoints": [
+      {
+        "path": "/api/hello",
+        "methods": ["GET"],
+        "auth_required": true,
+        "auth_type": "bearer",
+        "auth_credentials": {
+          "token": "my-jwt-token-here"
+        },
+        "parameters": [],
+        "body_format": "none",
+        "notes": "Middleware requires Authorization: my-jwt-token-here. Without bypass, returns 401 Unauthorized JSON."
+      }
+    ]
+  },
+  "source_artifacts": {
+    "vulnerable_code_snippets": [
+      {
+        "file": "middleware.js",
+        "language": "javascript",
+        "content": "export function middleware(req) {\n  const authHeader = req.headers.get('authorization');\n  if (!authHeader || authHeader !== 'my-jwt-token-here') {\n    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });\n  }\n  return NextResponse.next();\n}\nexport const config = { matcher: '/api/:path*' };",
+        "line_start": 1
+      }
+    ],
+    "patch_diff": "Vendor fix: reject or sanitize x-middleware-subrequest from external clients in affected Next.js versions."
+  },
+  "verification": {
+    "flag": {
+      "format": "response_secret",
+      "value": "Hello, World",
+      "location_type": "http_response",
+      "location_detail": "JSON field message in GET /api/hello when auth bypass succeeds",
+      "capture_marker": {
+        "prefix": "",
+        "suffix": ""
+      }
+    },
+    "success_signals": [
+      {
+        "type": "response_body_contains",
+        "pattern": "Hello, World",
+        "description": "Protected endpoint body leaked without valid Authorization"
+      },
+      {
+        "type": "http_status",
+        "code": 200,
+        "description": "Bypass returns 200 instead of 401"
+      }
+    ],
+    "failure_signals": [
+      {
+        "type": "response_body_contains",
+        "pattern": "Unauthorized",
+        "description": "Middleware still blocking request"
+      },
+      {
+        "type": "http_status",
+        "code": 401,
+        "description": "Auth still enforced"
+      }
+    ],
+    "patched_verification": {
+      "required": false,
+      "expect_blocked": true
+    }
+  },
+  "authorization": {
+    "target_url": "http://127.0.0.1:3100",
+    "operator_confirms_authorized": true,
+    "lab_mode": false,
+    "serve_lab": false
+  },
+  "references": [
+    "https://security.snyk.io/vuln/SNYK-JS-NEXT-9508709",
+    "local://kavach/lab/vulnerable-nextjs-14-CVE-2025-29927/README.md"
+  ],
+  "metadata": {
+    "author": "kavach",
+    "created_at": "2026-06-21",
+    "source": "bundled_nextjs_lab",
+    "notes": "Start lab: cd kavach/lab/vulnerable-nextjs-14-CVE-2025-29927 && npx next dev -p 3100. Run: python run.py --cve-json data/examples/lab_nextjs_cve_2025_29927.json --target http://127.0.0.1:3100/"
+  }
+}

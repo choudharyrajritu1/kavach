@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      KAVACH_LLM_MODE: ${KAVACH_LLM_MODE:-mock}
+      KAVACH_PROVIDER: ${KAVACH_PROVIDER:-Together}
+      KAVACH_MODEL: ${KAVACH_MODEL:-meta-llama/Llama-3.3-70B-Instruct-Turbo}
+      KAVACH_OFFLINE: ${KAVACH_OFFLINE:-true}
+      # Sandbox runs as a safe dry-run inside the API container by default.
+      KAVACH_SANDBOX_ENABLED: "false"
+      KAVACH_DB_PATH: /app/data/kavach.db
+      TOGETHER_API_KEY: ${TOGETHER_API_KEY:-}
+      CEREBRAS_API_KEY: ${CEREBRAS_API_KEY:-}
+      FIREWORKS_API_KEY: ${FIREWORKS_API_KEY:-}
+    volumes:
+      - kavach_data:/app/data
+    depends_on:
+      - db
+      - vector_db
+
+  # Relational store for production (the default app uses SQLite for dev).
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: kavach
+      POSTGRES_USER: kavach
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  # Vector store for CVE/code retrieval (RAG).
+  vector_db:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+volumes:
+  kavach_data:
+  pg_data:
+  qdrant_data:
